@@ -7,7 +7,7 @@
     "dev": "nodemon --inspect index.mjs",
     "build": "webpack --config webpack.config.mjs",
     "development": "node ./dist/bundle.development.js",
-    "start": "node ./dist/bundle.production.js",
+    "start": "node index.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "crawl:minhngoc": "node scripts/crawl-minhngoc-to-postgres.mjs"
   },
