@@ -1,0 +1,39 @@
+.module-header {
+  margin-bottom: var(--card-padding);
+}
+
+.report-config {
+  width: 100%;
+}
+
+.rc-options .rc-options-1,
+.rc-options-2 {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 5px;
+}
+
+.rc-options-2 {
+  margin-bottom: 2rem;
+}
+
+.rc-options .input {
+  margin-right: 2rem;
+}
+
+.rc-filter .rc-filter-select-all {
+  margin-bottom: 5px;
+}
+.rc-filter .rc-filter-select {
+  display: grid;
+  grid-template-columns: auto auto auto auto auto auto;
+  grid-row-gap: 5px;
+}
+
+.bacnho-report-submit-button {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+}

@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS vip_strategy_snapshots (
+  target_date DATE NOT NULL,
+  vip_mode TEXT NOT NULL CHECK (vip_mode IN ('vip1', 'vip2')),
+  number_size SMALLINT NOT NULL CHECK (number_size IN (2, 3)),
+  window_size SMALLINT NOT NULL CHECK (window_size IN (1, 2, 3)),
+  from_date DATE NOT NULL,
+  payload JSONB NOT NULL,
+  generated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (target_date, vip_mode, number_size, window_size)
+);

@@ -1,0 +1,20 @@
+# Dependencies and generated web bundles
+**/node_modules/
+**/build/
+**/dist/
+
+# Local configuration, secrets and runtime files
+**/.env
+**/*.log
+lottery-crawl-master/logs/
+lottery-crawl-master/output/
+
+# Local database installers and backups
+lottery-crawl-master/postgresql-*.exe
+backups/
+*.dump
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/

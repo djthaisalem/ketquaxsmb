@@ -1,0 +1,14 @@
+.setting-module-title h1 {
+  display: flex;
+  align-items: center;
+}
+
+.split-arrow {
+  font-size: 1.8rem;
+}
+
+@media screen and (max-width: 1200px) {
+}
+
+@media screen and (max-width: 768px) {
+}

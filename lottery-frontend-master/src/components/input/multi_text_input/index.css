@@ -1,0 +1,44 @@
+.multi-text-input {
+  background: var(--color-background);
+  border-radius: var(--border-radius-1);
+  padding: 0.5rem 1rem;
+  color: var(--color-info-dark);
+  display: flex;
+  flex-direction: column-reverse;
+  max-height: 200px;
+  width: 100%;
+}
+
+.multi-text-input textarea {
+  background: var(--color-background);
+  margin-top: 0.3rem;
+  color: var(--color-dark);
+  font-size: 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 100%;
+}
+
+.multi-text-input textarea:focus + label {
+  color: var(--color-primary);
+  transition: all ease-in-out 300ms;
+}
+
+.multi-text-input-error textarea:focus + label {
+  color: var(--color-danger);
+  transition: all ease-in-out 300ms;
+}
+
+.multi-text-active {
+  outline: 0.5px var(--color-primary) solid;
+}
+
+.multi-text-active label {
+  display: flex;
+}
+
+.multi-text-active label p {
+  margin-left: 0.3rem;
+  margin-block-start: 3px;
+  height: 0px;
+}

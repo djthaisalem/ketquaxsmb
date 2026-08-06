@@ -1,0 +1,12 @@
+.check-data-date-select {
+  display: flex;
+  flex-direction: row;
+}
+
+.check-data-date-select .input-container {
+  margin-right: 1.5rem;
+}
+
+.check-data-result {
+  margin-top: 1.5rem;
+}

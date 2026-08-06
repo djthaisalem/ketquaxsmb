@@ -1,0 +1,28 @@
+.dashboard-data {
+  display: flex;
+  flex-direction: row;
+}
+
+.d-d-result {
+  margin-right: 2rem;
+}
+.dashboard-highlight-column {
+  font-weight: bold;
+  font-size: 1.5rem;
+  line-height: 0.7;
+}
+.dashboard-date-select {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.dashboard-head-tail-highlight-column {
+  font-weight: bold;
+  font-size: 1.2rem;
+  line-height: 0.5;
+}
+
+.d-d-s-add-button {
+  margin-left: 2rem;
+}

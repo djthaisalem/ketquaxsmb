@@ -1,0 +1,118 @@
+.drawer {
+  position: absolute;
+  height: 100vh;
+  width: 100vw;
+  top: 0;
+  left: 0;
+  background: var(--color-background);
+  opacity: 0.7;
+  display: none;
+}
+
+.drawer-form {
+  position: absolute;
+  right: -100%;
+  top: 0;
+  width: 1000px;
+  height: 100vh;
+  background: var(--color-background);
+  padding: var(--card-padding);
+  border-radius: var(--card-border-radius);
+  box-shadow: var(--box-shadow);
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  opacity: 1;
+  z-index: 5;
+  display: none;
+  animation: showDrawer 400ms ease forwards;
+}
+
+.drawer-input-zone {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  width: 100%;
+  margin: 2rem 0;
+  height: 100%;
+}
+
+.drawer-input-zone .input-container {
+  margin: 1px 1px 2rem 1px;
+}
+
+.drawer-submit {
+  background-color: transparent;
+  bottom: 2rem;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.drawer-submit h3 {
+  margin-left: 2rem;
+}
+
+.drawer-form-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+#drawer-close-button {
+  position: absolute;
+  left: 2rem;
+}
+
+.drawer-form-header {
+  font-size: 1rem;
+}
+
+.drawer-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-children .switch-container {
+  margin-bottom: 2rem;
+}
+
+.drawer-child-input-zone {
+  max-height: 16rem;
+  transition: all ease-in-out 300ms;
+}
+
+.drawer-child-input-zone-scroll {
+  overflow-y: scroll;
+  padding-right: 1rem;
+  transition: all ease-in-out 300ms;
+}
+
+@keyframes showDrawer {
+  to {
+    right: 0;
+  }
+}
+
+@keyframes hideDrawer {
+  to {
+    right: -100%;
+  }
+}
+.drawer-show {
+  display: flex;
+}
+
+@media screen and (max-width: 768px) {
+  .drawer {
+    width: 100%;
+  }
+
+  .drawer-form {
+    width: 100%;
+  }
+
+  .drawer-submit {
+    position: fixed;
+  }
+}

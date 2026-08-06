@@ -1,0 +1,17 @@
+.primary-button {
+  background: var(--color-primary);
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border-radius: var(--border-radius-1);
+  width: fit-content;
+  padding: 0.5rem 1rem;
+  color: white;
+  align-items: center;
+  flex-direction: row;
+  display: flex;
+}
+
+.pb-loading {
+  margin-left: 0.5rem;
+}

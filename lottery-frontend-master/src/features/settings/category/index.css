@@ -1,0 +1,25 @@
+.setting-module-title {
+  display: flex;
+}
+
+.setting-module-title :last-child {
+  margin-left: auto;
+}
+
+.setting-module-title h1 {
+  display: flex;
+  align-items: center;
+}
+
+.split-arrow {
+  font-size: 1.8rem;
+}
+
+@media screen and (max-width: 1200px) {
+}
+
+@media screen and (max-width: 768px) {
+  .setting-module-title h1 {
+    font-size: 1.5rem;
+  }
+}
