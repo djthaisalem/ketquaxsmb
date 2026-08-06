@@ -1,11 +1,25 @@
 import { runCrawl } from './controllers/crawl.controller.mjs';
-import { refreshHomepageForecasts, refreshHomepageStatistics, refreshVipStrategySnapshots } from './controllers/dashboard.controller.mjs';
+import { refreshHomepageForecasts, refreshHomepageStatistics } from './controllers/dashboard.controller.mjs';
 import pool from './db.mjs';
 import { todayVietnam } from './daily-crawler.mjs';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 
 const defaultCrawlerSettings = { schedule: '19:00', enabled: true };
 let cachedCrawlerSettings = defaultCrawlerSettings;
 let crawlerSettingsReadAt = 0;
+const vipSnapshotWorkerPath = fileURLToPath(new URL('./vip-snapshot-worker.mjs', import.meta.url));
+
+function queueVipSnapshotRefresh(targetDate) {
+  const worker = spawn(process.execPath, [vipSnapshotWorkerPath, targetDate], {
+    detached: true,
+    env: process.env,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  worker.unref();
+  console.log(`VIP snapshot refresh queued for ${targetDate}.`);
+}
 
 function vietnamClock() {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
@@ -48,7 +62,7 @@ export function startDailyCrawlSchedule() {
       });
       await refreshHomepageForecasts(homepageDates);
       await refreshHomepageStatistics();
-      await refreshVipStrategySnapshots(targetDate);
+      queueVipSnapshotRefresh(targetDate);
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {
       console.error(`Daily crawl ${date} failed: ${error.message}`);
