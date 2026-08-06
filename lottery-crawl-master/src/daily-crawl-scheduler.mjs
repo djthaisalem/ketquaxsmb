@@ -1,10 +1,29 @@
 import { runCrawl } from './controllers/crawl.controller.mjs';
 import { refreshHomepageForecasts, refreshHomepageStatistics, refreshVipStrategySnapshots } from './controllers/dashboard.controller.mjs';
+import pool from './db.mjs';
 import { todayVietnam } from './daily-crawler.mjs';
+
+const defaultCrawlerSettings = { schedule: '19:00', enabled: true };
+let cachedCrawlerSettings = defaultCrawlerSettings;
+let crawlerSettingsReadAt = 0;
 
 function vietnamClock() {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
   return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));
+}
+
+async function getCrawlerSettings() {
+  if (Date.now() - crawlerSettingsReadAt < 60_000) return cachedCrawlerSettings;
+  crawlerSettingsReadAt = Date.now();
+  try {
+    const result = await pool.query("SELECT setting_value FROM api_settings WHERE setting_key = 'crawler'");
+    const value = result.rows[0]?.setting_value || {};
+    const schedule = String(value.schedule || defaultCrawlerSettings.schedule).match(/^([01]\d|2[0-3]):[0-5]\d$/)?.[0] || defaultCrawlerSettings.schedule;
+    cachedCrawlerSettings = { schedule, enabled: value.enabled !== false };
+  } catch (error) {
+    console.error(`Unable to read crawler settings: ${error.message}`);
+  }
+  return cachedCrawlerSettings;
 }
 
 export function startDailyCrawlSchedule() {
@@ -13,7 +32,9 @@ export function startDailyCrawlSchedule() {
   setInterval(async () => {
     const clock = vietnamClock();
     const date = todayVietnam();
-    if (clock.hour !== '19' || clock.minute !== '00' || lastRunDate === date) return;
+    const settings = await getCrawlerSettings();
+    const [hour, minute] = settings.schedule.split(':');
+    if (!settings.enabled || clock.hour !== hour || clock.minute !== minute || lastRunDate === date) return;
     lastRunDate = date;
     try {
       const result = await runCrawl(date);
@@ -33,5 +54,5 @@ export function startDailyCrawlSchedule() {
       console.error(`Daily crawl ${date} failed: ${error.message}`);
     }
   }, 15_000);
-  console.log('Daily crawler is scheduled for 19:00 Asia/Ho_Chi_Minh.');
+  console.log('Daily crawler reads its schedule from CMS (Asia/Ho_Chi_Minh).');
 }

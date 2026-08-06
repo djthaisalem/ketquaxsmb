@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import './index.css';
+import './mobile-usability.css';
 import StrategyPanel from './StrategyPanel';
 import StatsPanel from './StatsPanel';
 import StrategyAccess from './StrategyAccess';

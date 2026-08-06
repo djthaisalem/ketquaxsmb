@@ -16,6 +16,11 @@ const safeUser = (row) => ({
 
 const asPlan = (row) => ({ ...row, id: Number(row.id), price: Number(row.price), duration_days: Number(row.duration_days) });
 const currentDate = () => new Date().toISOString().slice(0, 10);
+const crawlerSettings = (value = {}) => ({
+  source: String(value.source || 'Minh Ngọc').trim() || 'Minh Ngọc',
+  schedule: String(value.schedule || '').match(/([01]\d|2[0-3]):[0-5]\d/)?.[0] || '19:00',
+  enabled: value.enabled !== false,
+});
 
 export const login = (req, res) => {
   if (!allowLoginAttempt('admin', req, res)) return;
@@ -57,10 +62,11 @@ export const apiStatus = async (_req, res, next) => {
   try {
     const settings = await pool.query('SELECT setting_key, setting_value, updated_at FROM api_settings ORDER BY setting_key');
     const latest = await pool.query("SELECT TO_CHAR(MAX(draw_date), 'YYYY-MM-DD') AS latest_date FROM lottery_draws");
+    const crawler = crawlerSettings(settings.rows.find((setting) => setting.setting_key === 'crawler')?.setting_value);
     return res.json({
       services: [
         { name: 'Public lottery API', path: '/api/lottery', status: 'active' },
-        { name: 'Data scanner', path: 'Minh Ngọc → PostgreSQL', status: 'scheduled', detail: '19:00 mỗi ngày' },
+        { name: 'Data scanner', path: 'Minh Ngọc → PostgreSQL', status: crawler.enabled ? 'scheduled' : 'inactive', detail: crawler.enabled ? `${crawler.schedule} mỗi ngày` : 'Đã tắt tự động quét' },
       ],
       latestDate: latest.rows[0].latest_date,
       settings: settings.rows,
@@ -72,8 +78,9 @@ export const updateApiSetting = async (req, res, next) => {
   try {
     const { settingValue } = req.body || {};
     if (!settingValue || typeof settingValue !== 'object') return res.status(400).json({ error: 'Thiết lập API chưa hợp lệ.' });
+    const value = req.params.key === 'crawler' ? crawlerSettings(settingValue) : settingValue;
     const result = await pool.query(`INSERT INTO api_settings (setting_key, setting_value, updated_at) VALUES ($1, $2, NOW())
-      ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW() RETURNING *`, [req.params.key, JSON.stringify(settingValue)]);
+      ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW() RETURNING *`, [req.params.key, JSON.stringify(value)]);
     return res.json({ setting: result.rows[0] });
   } catch (error) { return next(error); }
 };

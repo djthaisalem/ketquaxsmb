@@ -19,6 +19,8 @@ const menu = [
 ];
 const formatDate = (value) => value ? new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString('vi-VN') : '—';
 const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))}đ`;
+const crawlerTime = (value) => String(value || '').match(/^([01]\d|2[0-3]):[0-5]\d$/)?.[0] || '19:00';
+
 const PLAN_FEATURES = [
   { group: 'Tính toán thường', label: 'Thường · 2 số · khung 1 ngày' },
   { group: 'Tính toán thường', label: 'Thường · 2 số · khung 2 ngày' },
@@ -59,6 +61,7 @@ export default function AdminApp() {
   const [page, setPage] = useState('overview');
   const [data, setData] = useState({});
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [credentials, setCredentials] = useState({ username: 'admin', password: '' });
   const [resultRange, setResultRange] = useState({ from: '2005-01-01', to: new Date().toISOString().slice(0, 10) });
@@ -120,8 +123,10 @@ export default function AdminApp() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
+      setError(''); setNotice('');
       await request('/settings/crawler', token, { method: 'PUT', body: JSON.stringify({ settingValue: { source: form.get('source'), schedule: form.get('schedule'), enabled: form.get('enabled') === 'on' } }) });
       await load('api');
+      setNotice('Đã lưu lịch quét. Server sẽ áp dụng giờ mới trong tối đa 1 phút.');
     } catch (err) { setError(err.message); }
   }
   async function savePayments(settings) {
@@ -159,8 +164,21 @@ export default function AdminApp() {
       return <><div className="cms-stat-grid"><Card label="Kỳ quay đã lưu" value={overview?.draws.total?.toLocaleString('vi-VN')} note={`Từ ${formatDate(overview?.draws.first_date)} đến ${formatDate(overview?.draws.latest_date)}`} /><Card label="User đang hoạt động" value={overview?.users.active} note={`${overview?.users.total ?? 0} user trong CMS`} /><Card label="Gói đang mở bán" value={overview?.plans.active} note={`${overview?.plans.total ?? 0} gói đã cấu hình`} /></div><section className="cms-panel"><div className="cms-panel-title"><div><p className="cms-kicker">NHẬT KÝ QUÉT DỮ LIỆU</p><h2>Lần vận hành gần nhất</h2></div><span className="cms-badge">PostgreSQL local</span></div><div className="cms-table-wrap"><table><thead><tr><th>Nguồn</th><th>Khoảng dữ liệu</th><th>Thành công</th><th>Lỗi</th><th>Hoàn tất</th></tr></thead><tbody>{overview?.crawlRuns?.map((run, index) => <tr key={index}><td>{run.source_name}</td><td>{formatDate(run.from_date)} — {formatDate(run.to_date)}</td><td><b className="cms-success">{run.successful_days}</b> ngày</td><td>{run.failed_days}</td><td>{run.finished_at ? new Date(run.finished_at).toLocaleString('vi-VN') : 'Đang chạy'}</td></tr>) || <tr><td colSpan="5">Chưa có nhật ký.</td></tr>}</tbody></table></div></section></>;
     }
     if (page === 'api') {
-      const crawler = data.api?.settings?.find((setting) => setting.setting_key === 'crawler')?.setting_value || {};
-      return <><section className="cms-service-grid">{data.api?.services?.map((service) => <article className="cms-service" key={service.name}><span className={`cms-state ${service.status}`}></span><div><b>{service.name}</b><small>{service.path}</small></div><em>{service.detail || 'Đang hoạt động'}</em></article>)}</section><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">CẤU HÌNH QUÉT</p><h2>Nguồn và lịch cập nhật</h2><p className="cms-muted">Thay đổi lịch chỉ được lưu trong CMS; tiến trình server hiện chạy lịch 19:00.</p></div><form className="cms-inline-form" onSubmit={saveCrawler}><label>Nguồn dữ liệu<input name="source" defaultValue={crawler.source || 'Minh Ngọc'} /></label><label>Lịch quét<input name="schedule" defaultValue={crawler.schedule || '19:00 mỗi ngày'} /></label><label className="cms-checkbox"><input name="enabled" type="checkbox" defaultChecked={crawler.enabled !== false} /> Bật quét tự động</label><button>Lưu cấu hình</button></form></section></>;
+      const crawlerSetting = data.api?.settings?.find((setting) => setting.setting_key === 'crawler');
+      const crawler = crawlerSetting?.setting_value || {};
+      return <>
+        <section className="cms-service-grid">{data.api?.services?.map((service) => <article className="cms-service" key={service.name}><span className={`cms-state ${service.status}`}></span><div><b>{service.name}</b><small>{service.path}</small></div><em>{service.detail || 'Đang hoạt động'}</em></article>)}</section>
+        <section className="cms-panel cms-form-panel">
+          <div><p className="cms-kicker">CẤU HÌNH QUÉT</p><h2>Nguồn và lịch cập nhật</h2><p className="cms-muted">Giờ đã lưu được server đọc tự động, theo múi giờ Việt Nam.</p></div>
+          <form className="cms-inline-form" key={crawlerSetting?.updated_at || 'crawler-default'} onSubmit={saveCrawler}>
+            <label>Nguồn dữ liệu<input name="source" defaultValue={crawler.source || 'Minh Ngọc'} /></label>
+            <label>Lịch quét<input name="schedule" type="time" defaultValue={crawlerTime(crawler.schedule)} required /></label>
+            <label className="cms-checkbox"><input name="enabled" type="checkbox" defaultChecked={crawler.enabled !== false} /> Bật quét tự động</label>
+            <button>Lưu cấu hình</button>
+          </form>
+        </section>
+        {notice && <p className="cms-success cms-save-notice">{notice}</p>}
+      </>;
     }
     if (page === 'payments') return <PaymentSettings settings={data.payments?.settings} updatedAt={data.payments?.updatedAt} onSave={savePayments} />;
     if (page === 'notifications') return <NotificationCenter data={data.notifications} onSaveTelegram={saveTelegram} onResolve={resolvePaymentRequest} />;

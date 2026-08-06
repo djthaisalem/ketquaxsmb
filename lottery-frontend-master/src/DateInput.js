@@ -24,9 +24,13 @@ export default function DateInput({ value, onChange, min, max, id, disabled = fa
   }
 
   function openPicker() {
-    if (nativePicker.current?.showPicker) nativePicker.current.showPicker();
-    else nativePicker.current?.focus();
+    const picker = nativePicker.current;
+    if (!picker) return;
+    try {
+      if (picker.showPicker) picker.showPicker();
+      else picker.click();
+    } catch (_) { picker.click(); }
   }
 
-  return <span className="date-control"><input id={id} type="text" inputMode="numeric" placeholder="dd/mm/yyyy" value={text} disabled={disabled} onChange={(event) => setText(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') commit(); }} /><button type="button" className="date-picker-button" aria-label="Chọn ngày" disabled={disabled} onClick={openPicker}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14v15H5z" /></svg></button><input ref={nativePicker} className="date-picker-native" type="date" value={value || ''} min={min} max={max} onChange={(event) => onChange(event.target.value)} tabIndex="-1" aria-hidden="true" /></span>;
+  return <span className="date-control"><input id={id} type="text" inputMode="numeric" placeholder="dd/mm/yyyy" value={text} disabled={disabled} onChange={(event) => setText(event.target.value)} onBlur={commit} onKeyDown={(event) => { if (event.key === 'Enter') commit(); }} /><button type="button" className="date-picker-button" aria-label="Chọn ngày" disabled={disabled} onClick={openPicker}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3m10-3v3M4 9h16M5 5h14v15H5z" /></svg></button><input ref={nativePicker} className="date-picker-native" type="date" value={value || ''} min={min} max={max} onChange={(event) => onChange(event.target.value)} aria-label="Chọn ngày" disabled={disabled} /></span>;
 }
