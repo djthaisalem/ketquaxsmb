@@ -2,7 +2,7 @@
 
 ## Crawl Minh Ngọc into PostgreSQL
 
-1. Copy `.env.example` to `.env` and set `DATABASE_URL`.
+1. Copy `.env.example` to `.env`, set `DATABASE_URL`, and set `CORS_ORIGIN` to the deployed domain.
 2. Create the tables: `npm run db:migrate`.
 3. Crawl a date range: `npm run crawl:minhngoc -- 2010-01-01 2010-01-10`.
 
