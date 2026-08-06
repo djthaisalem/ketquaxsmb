@@ -95,8 +95,9 @@ export const requireVip = async (req, res, next) => {
   try {
     const result = await pool.query(`SELECT 1
       FROM cms_users u
-      JOIN membership_plans p ON p.id = u.membership_plan_id AND p.status = 'active'
-      WHERE u.id = $1 AND u.status = 'active'`, [req.memberId]);
+      LEFT JOIN membership_plans p ON p.id = u.membership_plan_id AND p.status = 'active'
+      WHERE u.id = $1 AND u.status = 'active'
+        AND (u.trial_ends_at > NOW() OR p.id IS NOT NULL)`, [req.memberId]);
     if (!result.rowCount) return res.status(403).json({ error: 'Tính năng VIP cần gói thành viên đang hoạt động.' });
     return next();
   } catch (error) { return next(error); }
