@@ -50,11 +50,11 @@ export default function App() {
     window.history.replaceState(null, '', nextUrl);
   }
 
-  async function request(path) {
-    const response = await fetch(`${API_URL}${path}`);
+  async function request(path, options = {}) {
+    const response = await fetch(`${API_URL}${path}`, options);
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.message || 'Không thể tải dữ liệu.');
+      throw new Error(body.message || body.error || 'Không thể tải dữ liệu.');
     }
     return response.json();
   }

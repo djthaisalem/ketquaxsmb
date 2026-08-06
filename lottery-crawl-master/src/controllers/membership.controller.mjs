@@ -80,8 +80,8 @@ export const registerMember = async (req, res, next) => {
     const { username, email, password } = req.body || {};
     if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username || '') || !/^\S+@\S+\.\S+$/.test(email || '') || !validPassword(password)) return res.status(400).json({ error: 'Mật khẩu cần từ 10 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.' });
     const passwordHash = await hashPassword(password);
-    const created = await pool.query(`INSERT INTO cms_users (username, email, password_hash, role, status, trial_ends_at)
-      VALUES ($1, $2, $3, 'member', 'active', NOW() + INTERVAL '2 days') RETURNING id`, [username.toLowerCase(), email.toLowerCase(), passwordHash]);
+    const created = await pool.query(`INSERT INTO cms_users (username, email, password_hash, role, status)
+      VALUES ($1, $2, $3, 'member', 'active') RETURNING id`, [username.toLowerCase(), email.toLowerCase(), passwordHash]);
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, { memberId: created.rows[0].id, expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000 });
     return res.status(201).json({ token, member: await memberRecord(created.rows[0].id) });
@@ -89,6 +89,17 @@ export const registerMember = async (req, res, next) => {
     if (error.code === '23505') return res.status(409).json({ error: 'Tên đăng nhập hoặc email đã được sử dụng.' });
     return next(error);
   }
+};
+
+export const requireVip = async (req, res, next) => {
+  try {
+    const result = await pool.query(`SELECT 1
+      FROM cms_users u
+      JOIN membership_plans p ON p.id = u.membership_plan_id AND p.status = 'active'
+      WHERE u.id = $1 AND u.status = 'active'`, [req.memberId]);
+    if (!result.rowCount) return res.status(403).json({ error: 'Tính năng VIP cần gói thành viên đang hoạt động.' });
+    return next();
+  } catch (error) { return next(error); }
 };
 
 export const loginMember = async (req, res, next) => {

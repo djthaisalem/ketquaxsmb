@@ -55,7 +55,7 @@ export default function StrategyPanel({ date, onDateChange, request, onError }) 
     setLoading(true);
     try {
       const params = new URLSearchParams({ date, window: windowSize, mode });
-      setReport(await request(`/lottery/statistics/vip-strategies?${params}`));
+      setReport(await request(`/lottery/statistics/vip-strategies?${params}`, { headers: { Authorization: `Bearer ${member.token}` } }));
     } catch (error) { onError(error.message); } finally { setLoading(false); }
   }
 

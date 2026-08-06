@@ -7,7 +7,7 @@ const lotteryRoutes = new Router();
 import lotteryController from '../controllers/lottery.controller.mjs';
 import { advanced, byDate, frequency, gaps, homepageForecasts, homepageStatistics, latest, numberQuery, overview, strategies, tripleReport, vipStrategies } from '../controllers/dashboard.controller.mjs';
 import { crawlToday } from '../controllers/crawl.controller.mjs';
-import { activePlans, authenticate, getMemberAccount, loginMember, paymentMethods, registerMember, requestPlan, submitPaymentRequest, updateMemberEmail, updateMemberPassword, vipHistory, vipTrialResults } from '../controllers/membership.controller.mjs';
+import { activePlans, authenticate, getMemberAccount, loginMember, paymentMethods, registerMember, requestPlan, requireVip, submitPaymentRequest, updateMemberEmail, updateMemberPassword, vipHistory, vipTrialResults } from '../controllers/membership.controller.mjs';
 
 /*
  * define route
@@ -22,7 +22,7 @@ lotteryRoutes.get('/statistics/advanced', advanced);
 lotteryRoutes.get('/statistics/numbers', numberQuery);
 lotteryRoutes.get('/statistics/triple-report', tripleReport);
 lotteryRoutes.get('/statistics/strategies', strategies);
-lotteryRoutes.get('/statistics/vip-strategies', vipStrategies);
+lotteryRoutes.get('/statistics/vip-strategies', authenticate, requireVip, vipStrategies);
 lotteryRoutes.get('/homepage-forecasts', homepageForecasts);
 lotteryRoutes.get('/homepage-statistics', homepageStatistics);
 lotteryRoutes.get('/membership-plans', activePlans);
