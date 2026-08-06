@@ -3,6 +3,7 @@ import { refreshHomepageForecasts, refreshHomepageStatistics } from './controlle
 import pool from './db.mjs';
 import { todayVietnam } from './daily-crawler.mjs';
 import { storeVipResultHistory } from './vip-result-history.mjs';
+import { refreshInternalBacktest } from './internal-backtest.mjs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -68,6 +69,7 @@ export function startDailyCrawlSchedule() {
         value.setUTCDate(value.getUTCDate() + offset);
         return storeVipResultHistory(value.toISOString().slice(0, 10));
       }));
+      await refreshInternalBacktest();
       queueVipSnapshotRefresh(targetDate);
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {

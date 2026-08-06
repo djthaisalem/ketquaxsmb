@@ -3,6 +3,7 @@ import pool from '../db.mjs';
 import { invalidateMemberSessions } from './membership.controller.mjs';
 import { allowLoginAttempt, clearLoginFailures, recordLoginFailure } from '../auth-security.mjs';
 import { saveTelegramSettings, telegramSettings } from '../telegram.mjs';
+import { getInternalBacktest, refreshInternalBacktest } from '../internal-backtest.mjs';
 
 const sessions = new Map();
 const adminUsername = process.env.ADMIN_USERNAME || 'admin';
@@ -254,5 +255,17 @@ export const listVipResults = async (req, res, next) => {
       grouped.get(row.date).items.push({ vipMode: row.vip_mode, numberSize: row.number_size, window: row.window_size, generatedAt: row.generated_at, ...row.payload });
     });
     return res.json({ from, to, numberSize, window, days: [...grouped.values()] });
+  } catch (error) { return next(error); }
+};
+
+export const getResearchBacktest = async (_req, res, next) => {
+  try {
+    return res.json({ report: await getInternalBacktest() });
+  } catch (error) { return next(error); }
+};
+
+export const refreshResearchBacktest = async (_req, res, next) => {
+  try {
+    return res.json({ report: await refreshInternalBacktest() });
   } catch (error) { return next(error); }
 };
