@@ -609,7 +609,7 @@ export async function vipStrategies(req, res, next) {
     const rows = await pool.query('SELECT number_size, from_date::text AS from_date, payload FROM vip_strategy_snapshots WHERE target_date = $1 AND vip_mode = $2 AND window_size = $3 ORDER BY number_size', [targetDate, mode, window]);
     const two = rows.rows.find((row) => row.number_size === 2);
     const three = rows.rows.find((row) => row.number_size === 3);
-    if (!two || !three) return res.status(202).json({ pending: true, date: targetDate, message: `Đang tạo snapshot VIP cho ngày ${targetDate}.` });
+    if (!two || !three) return res.status(202).json({ pending: true, date: targetDate, message: `Đang tạo kết quả VIP cho ngày ${targetDate}.` });
     return res.json({ date: targetDate, sourceDate: requestedDate, from: two.from_date, window, vipMode: mode, snapshotGenerated: generated, ...(two.payload), threeNumber: { ...(three.payload), date: targetDate } });
   } catch (error) { return next(error); }
 }
