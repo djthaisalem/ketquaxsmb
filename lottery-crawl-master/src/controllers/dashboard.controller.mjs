@@ -1,6 +1,8 @@
 import pool from '../db.mjs';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
 
-const vipSnapshotRefreshes = new Map();
+const vipSnapshotWorkerPath = fileURLToPath(new URL('../vip-snapshot-worker.mjs', import.meta.url));
 
 const prizeLabels = { db: 'Đặc biệt', g1: 'Giải nhất', g2: 'Giải nhì', g3: 'Giải ba', g4: 'Giải tư', g5: 'Giải năm', g6: 'Giải sáu', g7: 'Giải bảy' };
 
@@ -582,14 +584,13 @@ async function ensureVipStrategySnapshots(targetDate, mode, window) {
       AND number_size IN (2, 3)`, [targetDate, mode, window]);
   if (existing.rows[0].count === 2) return false;
 
-  const cacheKey = `${targetDate}:${mode}:${window}`;
-  let refresh = vipSnapshotRefreshes.get(cacheKey);
-  if (!refresh) {
-    refresh = refreshVipStrategySnapshots(targetDate, { modes: [mode], windows: [window], numberSizes: [2, 3] })
-      .finally(() => vipSnapshotRefreshes.delete(cacheKey));
-    vipSnapshotRefreshes.set(cacheKey, refresh);
-  }
-  await refresh;
+  const worker = spawn(process.execPath, [vipSnapshotWorkerPath, targetDate, JSON.stringify({ modes: [mode], windows: [window], numberSizes: [2, 3] })], {
+    detached: true,
+    env: process.env,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  worker.unref();
   return true;
 }
 
@@ -602,13 +603,13 @@ export async function vipStrategies(req, res, next) {
       (SELECT MAX(target_date)::text FROM vip_strategy_snapshots WHERE vip_mode = $1 AND window_size = $2),
       (SELECT MAX(draw_date)::text FROM lottery_draws)
     ) AS target_date`, [mode, window]);
-    const targetDate = requestedDate || latest.rows[0].target_date;
+    const targetDate = requestedDate ? addDays(requestedDate, 1) : latest.rows[0].target_date;
     const generated = targetDate ? await ensureVipStrategySnapshots(targetDate, mode, window) : false;
     if (!targetDate) return res.status(404).json({ message: 'VIP đang chuẩn bị dữ liệu. Vui lòng thử lại sau.' });
     const rows = await pool.query('SELECT number_size, from_date::text AS from_date, payload FROM vip_strategy_snapshots WHERE target_date = $1 AND vip_mode = $2 AND window_size = $3 ORDER BY number_size', [targetDate, mode, window]);
     const two = rows.rows.find((row) => row.number_size === 2);
     const three = rows.rows.find((row) => row.number_size === 3);
-    if (!two || !three) return res.status(404).json({ message: `Chưa có snapshot VIP cho ngày ${targetDate}.` });
-    return res.json({ date: targetDate, from: two.from_date, window, vipMode: mode, snapshotGenerated: generated, ...(two.payload), threeNumber: { ...(three.payload), date: targetDate } });
+    if (!two || !three) return res.status(202).json({ pending: true, date: targetDate, message: `Đang tạo snapshot VIP cho ngày ${targetDate}.` });
+    return res.json({ date: targetDate, sourceDate: requestedDate, from: two.from_date, window, vipMode: mode, snapshotGenerated: generated, ...(two.payload), threeNumber: { ...(three.payload), date: targetDate } });
   } catch (error) { return next(error); }
 }
