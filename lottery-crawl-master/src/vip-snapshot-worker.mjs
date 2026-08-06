@@ -22,8 +22,9 @@ if (!options.modes.length) options.modes = allowedModes;
 if (!options.windows.length) options.windows = allowedWindows;
 if (!options.numberSizes.length) options.numberSizes = allowedNumberSizes;
 
-const [{ refreshVipStrategySnapshots }, { default: pool }] = await Promise.all([
+const [{ refreshVipStrategySnapshots }, { storeVipResultHistory }, { default: pool }] = await Promise.all([
   import('./controllers/dashboard.controller.mjs'),
+  import('./vip-result-history.mjs'),
   import('./db.mjs'),
 ]);
 
@@ -40,6 +41,7 @@ try {
     await client.query('SELECT pg_advisory_unlock(hashtext($1))', [`vip-snapshot:${targetDate}`]).catch(() => {});
     client.release();
   }
+  await storeVipResultHistory(targetDate);
   console.log(`VIP snapshots saved for ${targetDate}.`);
 } catch (error) {
   console.error(`VIP snapshot refresh failed for ${targetDate}: ${error.message}`);

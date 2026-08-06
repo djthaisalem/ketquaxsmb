@@ -2,6 +2,7 @@ import { runCrawl } from './controllers/crawl.controller.mjs';
 import { refreshHomepageForecasts, refreshHomepageStatistics } from './controllers/dashboard.controller.mjs';
 import pool from './db.mjs';
 import { todayVietnam } from './daily-crawler.mjs';
+import { storeVipResultHistory } from './vip-result-history.mjs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -62,6 +63,11 @@ export function startDailyCrawlSchedule() {
       });
       await refreshHomepageForecasts(homepageDates);
       await refreshHomepageStatistics();
+      await Promise.all([-2, -1, 0].map((offset) => {
+        const value = new Date(`${date}T00:00:00Z`);
+        value.setUTCDate(value.getUTCDate() + offset);
+        return storeVipResultHistory(value.toISOString().slice(0, 10));
+      }));
       queueVipSnapshotRefresh(targetDate);
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {

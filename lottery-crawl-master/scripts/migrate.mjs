@@ -19,6 +19,7 @@ try {
   await client.query(await readFile(new URL('../sql/007_payment_requests.sql', import.meta.url), 'utf8'));
   await client.query(await readFile(new URL('../sql/008_payment_transaction_codes.sql', import.meta.url), 'utf8'));
   await client.query(await readFile(new URL('../sql/009_payment_drafts.sql', import.meta.url), 'utf8'));
+  await client.query(await readFile(new URL('../sql/010_vip_result_history.sql', import.meta.url), 'utf8'));
   console.log('Đã tạo schema PostgreSQL.');
 } finally {
   await client.end();

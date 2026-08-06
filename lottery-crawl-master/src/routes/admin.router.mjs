@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { apiStatus, createPlan, createUser, deleteUser, listNotifications, listPlans, listResults, listUsers, login, overview, paymentSettings, requireAdmin, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
+import { apiStatus, createPlan, createUser, deleteUser, listNotifications, listPlans, listResults, listUsers, listVipResults, login, overview, paymentSettings, requireAdmin, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
 
 const adminRoutes = Router();
 
@@ -21,5 +21,6 @@ adminRoutes.get('/plans', listPlans);
 adminRoutes.post('/plans', createPlan);
 adminRoutes.patch('/plans/:id', updatePlan);
 adminRoutes.get('/results', listResults);
+adminRoutes.get('/vip-results', listVipResults);
 
 export default adminRoutes;

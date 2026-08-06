@@ -6,6 +6,7 @@ import './admin-user-plans.css';
 import './admin-user-actions.css';
 import './admin-payments.css';
 import './admin-notifications.css';
+import './admin-vip-results.css';
 
 const API = '/api/admin';
 const menu = [
@@ -15,6 +16,7 @@ const menu = [
   ['notifications', 'Thông báo', 'Yêu cầu nạp gói và Telegram'],
   ['users', 'Quản lý User', 'Tài khoản và quyền truy cập'],
   ['plans', 'Gói thành viên', 'Gói miễn phí và VIP'],
+  ['vip-results', 'Kết quả VIP', 'Đối chiếu kết quả VIP theo ngày'],
   ['database', 'Database kết quả', 'Tra cứu kết quả đã lưu'],
 ];
 const formatDate = (value) => value ? new Date(`${String(value).slice(0, 10)}T00:00:00`).toLocaleDateString('vi-VN') : '—';
@@ -56,6 +58,11 @@ function Card({ label, value, note }) {
   return <article className="cms-stat"><span>{label}</span><strong>{value ?? '—'}</strong>{note && <small>{note}</small>}</article>;
 }
 
+function VipResults({ data, range, onRangeChange, onLoad }) {
+  const labels = { vip1: 'VIP 1 · Tối ưu Win Rate', vip2: 'VIP 2 · Tối ưu Mẫu' };
+  return <><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">KẾT QUẢ VIP ĐÃ VỀ</p><h2>Đối chiếu theo lịch sử</h2><p className="cms-muted">Chỉ hiển thị các lựa chọn VIP đã xuất hiện trong khung ngày được chọn.</p></div><form className="cms-inline-form cms-vip-results-filter" onSubmit={(event) => { event.preventDefault(); onLoad(); }}><label>Từ ngày<DateInput min="2026-07-01" value={range.from} onChange={(value) => onRangeChange({ ...range, from: value })} /></label><label>Đến ngày<DateInput min={range.from} value={range.to} onChange={(value) => onRangeChange({ ...range, to: value })} /></label><label>Khung<select value={range.window} onChange={(event) => onRangeChange({ ...range, window: event.target.value })}><option value="1">1 ngày</option><option value="2">2 ngày</option><option value="3">3 ngày</option></select></label><label>Kiểu số<select value={range.numberSize} onChange={(event) => onRangeChange({ ...range, numberSize: event.target.value })}><option value="2">Lô 2 số</option><option value="3">Lô 3 số</option></select></label><button>Tải kết quả VIP</button></form></section><section className="cms-vip-result-grid">{data?.days?.length ? data.days.map((day) => <article key={day.date}><header><b>Dự báo từ {formatDate(day.date)}</b><span>{day.items.reduce((total, item) => total + item.hits, 0)} lần về</span></header>{day.items.map((item) => <section key={item.vipMode}><small>{labels[item.vipMode]} · {item.numberSize} số · Khung {item.window} ngày · toàn bộ tín hiệu đã quét</small><strong>{item.numbers.join(' · ')}</strong><b className="cms-vip-hit-count">{item.hits} lần về</b><div>{item.byDay.map((entry) => <p className={entry.hits ? 'hit' : ''} key={entry.day}>Ngày {entry.day} · {formatDate(entry.date)}: <b>{!entry.available ? 'chờ kết quả' : entry.hits ? `${entry.hits} lần` : 'chưa về'}</b>{entry.matched.length ? ` · ${entry.matched.join(' · ')}` : ''}{entry.evidence?.length ? <small> · {entry.evidence.map((proof) => `${proof.number} ← ${proof.sources.join(', ')}`).join(' | ')}</small> : null}</p>)}</div></section>)}</article>) : <section className="cms-panel cms-vip-results-empty">Chưa có kết quả VIP đã về trong khoảng ngày đang chọn. Hãy chạy lệnh nạp lịch sử trước.</section>}</section></>;
+}
+
 export default function AdminApp() {
   const [token, setToken] = useState(() => sessionStorage.getItem('xsmbCmsToken') || '');
   const [page, setPage] = useState('overview');
@@ -65,13 +72,14 @@ export default function AdminApp() {
   const [loading, setLoading] = useState(false);
   const [credentials, setCredentials] = useState({ username: 'admin', password: '' });
   const [resultRange, setResultRange] = useState({ from: '2005-01-01', to: new Date().toISOString().slice(0, 10) });
+  const [vipResultRange, setVipResultRange] = useState({ from: '2026-07-01', to: new Date().toISOString().slice(0, 10), window: '3', numberSize: '2' });
   const active = useMemo(() => menu.find(([key]) => key === page), [page]);
 
   async function load(target = page) {
     if (!token) return;
     setLoading(true); setError('');
     try {
-      const endpoint = target === 'overview' ? '/overview' : target === 'api' ? '/api-status' : target === 'payments' ? '/payments' : target === 'notifications' ? '/notifications' : target === 'users' ? '/users' : target === 'plans' ? '/plans' : `/results?from=${resultRange.from}&to=${resultRange.to}`;
+      const endpoint = target === 'overview' ? '/overview' : target === 'api' ? '/api-status' : target === 'payments' ? '/payments' : target === 'notifications' ? '/notifications' : target === 'users' ? '/users' : target === 'plans' ? '/plans' : target === 'vip-results' ? `/vip-results?from=${vipResultRange.from}&to=${vipResultRange.to}&window=${vipResultRange.window}&numberSize=${vipResultRange.numberSize}` : `/results?from=${resultRange.from}&to=${resultRange.to}`;
       const next = await request(endpoint, token);
       const plans = target === 'users' ? await request('/plans', token) : null;
       setData((current) => ({ ...current, [target]: next, ...(plans ? { plans } : {}) }));
@@ -182,6 +190,7 @@ export default function AdminApp() {
     }
     if (page === 'payments') return <PaymentSettings settings={data.payments?.settings} updatedAt={data.payments?.updatedAt} onSave={savePayments} />;
     if (page === 'notifications') return <NotificationCenter data={data.notifications} onSaveTelegram={saveTelegram} onResolve={resolvePaymentRequest} />;
+    if (page === 'vip-results') return <VipResults data={data['vip-results']} range={vipResultRange} onRangeChange={setVipResultRange} onLoad={() => load('vip-results')} />;
     if (page === 'users') return <><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">THÊM TÀI KHOẢN</p><h2>Tạo user mới</h2></div><form className="cms-inline-form cms-user-form" onSubmit={createUser}><label>Tên đăng nhập<input name="username" required placeholder="vd: thanhnguyen" /></label><label>Họ tên<input name="fullName" placeholder="Không bắt buộc" /></label><label>Vai trò<select name="role"><option value="member">Member</option><option value="admin">Admin</option></select></label><label>Gói<select name="plan"><option value="">Chưa có gói</option>{data.plans?.plans?.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></label><button>Tạo user</button></form></section><UserTable users={data.users?.users} plans={data.plans?.plans} onUpdate={updateUser} onDelete={deleteUser} /></>;
     if (page === 'plans') return <><section className="cms-plan-grid">{data.plans?.plans?.map((plan) => <article className="cms-plan" key={plan.id}><div><span className={`cms-badge ${plan.status}`}>{plan.status === 'active' ? 'Đang mở' : 'Tạm ẩn'}</span><h2>{plan.name}</h2><strong>{formatMoney(plan.price)}</strong><small>{plan.duration_days} ngày</small></div><ul>{plan.features?.map((feature) => <li key={feature}>{feature}</li>)}</ul><button className="cms-text-button" onClick={() => togglePlan(plan)}>{plan.status === 'active' ? 'Tạm ẩn gói' : 'Mở lại gói'}</button></article>)}</section><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">GÓI MỚI</p><h2>Thêm gói thành viên</h2></div><form className="cms-inline-form" onSubmit={createPlan}><label>Tên gói<input name="name" required /></label><label>Giá (VNĐ)<input name="price" type="number" min="0" required /></label><label>Số ngày<input name="durationDays" type="number" min="1" required /></label><label>Tính năng<input name="features" placeholder="Cách nhau bằng dấu phẩy" /></label><button>Tạo gói</button></form></section></>;
     return <><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">POSTGRESQL</p><h2>Tra cứu kết quả đã lưu</h2><p className="cms-muted">Hiển thị giải đặc biệt để kiểm tra nhanh dữ liệu kỳ quay.</p></div><form className="cms-inline-form cms-results-filter" onSubmit={(event) => { event.preventDefault(); load('database'); }}><label>Từ ngày<DateInput value={resultRange.from} onChange={(value) => setResultRange({ ...resultRange, from: value })} /></label><label>Đến ngày<DateInput value={resultRange.to} onChange={(value) => setResultRange({ ...resultRange, to: value })} /></label><button>Tải kết quả</button></form></section><section className="cms-panel"><div className="cms-panel-title"><div><p className="cms-kicker">KẾT QUẢ XSMB</p><h2>{data.database?.total?.toLocaleString('vi-VN') || 0} kỳ trong khoảng chọn</h2></div></div><div className="cms-table-wrap"><table><thead><tr><th>Ngày quay</th><th>Giải đặc biệt</th><th>Thời gian lưu</th></tr></thead><tbody>{data.database?.results?.map((row) => <tr key={row.draw_date}><td><b>{formatDate(row.draw_date)}</b></td><td className="cms-special">{row.special_prize?.join(' · ')}</td><td>{new Date(row.crawled_at).toLocaleString('vi-VN')}</td></tr>) || <tr><td colSpan="3">Đang tải dữ liệu…</td></tr>}</tbody></table></div></section></>;

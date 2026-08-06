@@ -235,3 +235,24 @@ export const listResults = async (req, res, next) => {
     return res.json({ from, to, total: count.rows[0].total, results: result.rows });
   } catch (error) { return next(error); }
 };
+
+export const listVipResults = async (req, res, next) => {
+  try {
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : '2026-07-01';
+    const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : currentDate();
+    const numberSize = String(req.query.numberSize) === '3' ? 3 : 2;
+    const window = ['1', '2', '3'].includes(String(req.query.window)) ? Number(req.query.window) : 3;
+    if (from > to) return res.status(400).json({ error: 'Ngày bắt đầu phải trước ngày kết thúc.' });
+    const result = await pool.query(`SELECT target_date::text AS date, vip_mode, number_size, window_size, payload, generated_at
+      FROM vip_result_history
+      WHERE target_date BETWEEN $1 AND $2 AND number_size = $3 AND window_size = $4
+        AND COALESCE((payload ->> 'hits')::int, 0) > 0
+      ORDER BY target_date DESC, vip_mode`, [from, to, numberSize, window]);
+    const grouped = new Map();
+    result.rows.forEach((row) => {
+      if (!grouped.has(row.date)) grouped.set(row.date, { date: row.date, items: [] });
+      grouped.get(row.date).items.push({ vipMode: row.vip_mode, numberSize: row.number_size, window: row.window_size, generatedAt: row.generated_at, ...row.payload });
+    });
+    return res.json({ from, to, numberSize, window, days: [...grouped.values()] });
+  } catch (error) { return next(error); }
+};
