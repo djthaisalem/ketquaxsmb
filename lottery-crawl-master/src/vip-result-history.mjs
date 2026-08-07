@@ -8,12 +8,17 @@ const addDays = (date, amount) => {
 
 function resultPayload(snapshot, actual) {
   const candidates = new Map();
-  (snapshot.payload?.items || []).forEach((signal) => {
-    (signal.targets || []).forEach((number) => {
+  const addCandidates = (targets, source) => {
+    (targets || []).forEach((number) => {
       if (!candidates.has(number)) candidates.set(number, { number, sources: [] });
-      candidates.get(number).sources.push(signal.formula || signal.group);
+      candidates.get(number).sources.push(source);
     });
+  };
+  (snapshot.payload?.items || []).forEach((signal) => {
+    addCandidates(signal.targets, signal.formula || signal.group);
   });
+  addCandidates(snapshot.payload?.recommendationOne?.targets, 'Ưu tiên 1 số');
+  addCandidates(snapshot.payload?.recommendation?.targets, 'Đề xuất ưu tiên 2 số');
 
   const pending = new Set(candidates.keys());
   const byDay = Array.from({ length: snapshot.window_size }, (_, offset) => {

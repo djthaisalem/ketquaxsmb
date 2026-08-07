@@ -243,6 +243,8 @@ const vipSourceMatches = (formula, source) => {
   if (source === 'bong-am-duong') return value.startsWith('bóng dương gđb') || value.startsWith('bóng âm gđb');
   if (source === 'ghep-g7') return value.startsWith('ghép g7');
   if (source === 'ghep-gdb-g4-g5') return value.startsWith('gđb đuôi');
+  if (source === 'priority-one') return value === 'ưu tiên 1 số';
+  if (source === 'priority-two') return value === 'đề xuất ưu tiên 2 số';
   return true;
 };
 
@@ -266,7 +268,7 @@ export const listVipResults = async (req, res, next) => {
     const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : currentDate();
     const numberSize = String(req.query.numberSize) === '3' ? 3 : 2;
     const window = ['1', '2', '3'].includes(String(req.query.window)) ? Number(req.query.window) : 3;
-    const source = ['all', 'bac-nho', 'bong-am-duong', 'ghep-g7', 'ghep-gdb-g4-g5'].includes(String(req.query.source)) ? String(req.query.source) : 'all';
+    const source = ['all', 'priority-one', 'priority-two', 'bac-nho', 'bong-am-duong', 'ghep-g7', 'ghep-gdb-g4-g5'].includes(String(req.query.source)) ? String(req.query.source) : 'all';
     if (from > to) return res.status(400).json({ error: 'Ngày bắt đầu phải trước ngày kết thúc.' });
     const result = await pool.query(`SELECT target_date::text AS date, vip_mode, number_size, window_size, payload, generated_at
       FROM vip_result_history

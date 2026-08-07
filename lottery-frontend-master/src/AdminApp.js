@@ -67,7 +67,7 @@ function VipResults({ data, range, onRangeChange, onLoad }) {
 }
 
 function VipResultSourceFilter({ range, onRangeChange, onLoad }) {
-  return <section className="cms-panel cms-vip-source-filter"><div><p className="cms-kicker">LỌC NGUỒN TẠO SỐ</p><h3>Chỉ xem số đã về theo công thức</h3><p className="cms-muted">Chọn một nguồn rồi tải lại để đối chiếu những số đã về do riêng nguồn đó tạo ra.</p></div><label>Nguồn tạo số<select value={range.source} onChange={(event) => onRangeChange({ ...range, source: event.target.value })}><option value="all">Tất cả nguồn tạo số</option><option value="bac-nho">Bạc nhớ D+1</option><option value="bong-am-duong">Bóng âm – dương</option><option value="ghep-g7">Ghép giải bảy</option><option value="ghep-gdb-g4-g5">Ghép GĐB – G4 – G5</option></select></label><button onClick={onLoad}>Lọc kết quả đã về</button></section>;
+  return <section className="cms-panel cms-vip-source-filter"><div><p className="cms-kicker">LỌC NGUỒN TẠO SỐ</p><h3>Chỉ xem số đã về theo công thức</h3><p className="cms-muted">Bao gồm hai đề xuất ưu tiên và bốn nguồn tạo số. Chọn một nguồn rồi tải lại để đối chiếu.</p></div><label>Nguồn tạo số<select value={range.source} onChange={(event) => onRangeChange({ ...range, source: event.target.value })}><option value="all">Tất cả nguồn tạo số</option><option value="priority-one">Ưu tiên 1 số</option><option value="priority-two">Đề xuất ưu tiên 2 số</option><option value="bac-nho">Bạc nhớ D+1</option><option value="bong-am-duong">Bóng âm – dương</option><option value="ghep-g7">Ghép giải bảy</option><option value="ghep-gdb-g4-g5">Ghép GĐB – G4 – G5</option></select></label><button onClick={onLoad}>Lọc kết quả đã về</button></section>;
 }
 
 function InternalBacktest({ report, onRefresh, loading }) {
