@@ -230,49 +230,17 @@ export const vipHistory = async (_req, res, next) => {
   try {
     const numberSize = String(_req.query.numberSize) === '3' ? 3 : 2;
     const window = ['1', '2', '3'].includes(String(_req.query.window)) ? Number(_req.query.window) : 3;
-    const sources = await pool.query(`SELECT DISTINCT s.target_date::text AS date FROM vip_strategy_snapshots s
-      WHERE s.window_size = $1 AND s.number_size = $2 AND s.target_date <= (SELECT MAX(draw_date) FROM lottery_draws)
-      ORDER BY 1 DESC LIMIT 3`, [window, numberSize]);
-    const dayList = sources.rows.map((row) => row.date);
-    if (!dayList.length) return res.json({ numberSize, window, days: [] });
-    const addDays = (date, amount) => { const value = new Date(`${date}T00:00:00Z`); value.setUTCDate(value.getUTCDate() + amount); return value.toISOString().slice(0, 10); };
-    const actualDates = [...new Set(dayList.flatMap((date) => Array.from({ length: window }, (_, offset) => addDays(date, offset))))];
-    const [snapshots, prizes] = await Promise.all([
-      pool.query('SELECT target_date::text AS date, vip_mode, number_size, payload FROM vip_strategy_snapshots WHERE target_date = ANY($1::date[]) AND window_size = $2 AND number_size = $3', [dayList, window, numberSize]),
-      pool.query('SELECT draw_date::text AS date, prize_code, numbers FROM lottery_prizes WHERE draw_date = ANY($1::date[])', [actualDates]),
-    ]);
-    const actual = new Map();
-    prizes.rows.forEach((row) => actual.set(row.date, [...(actual.get(row.date) || []), ...row.numbers.map((number) => ({ number, prize: row.prize_code.toUpperCase() }))]));
-    const rows = new Map(snapshots.rows.map((row) => [`${row.date}-${row.vip_mode}-${row.number_size}`, row]));
-    const days = dayList.map((date) => {
-      const items = ['vip1', 'vip2'].flatMap((vipMode) => [numberSize].flatMap((numberSize) => {
-        const snapshot = rows.get(`${date}-${vipMode}-${numberSize}`);
-        const candidates = new Map();
-        (snapshot?.payload?.items || []).forEach((signal) => {
-          (signal.targets || []).forEach((number) => {
-            if (!candidates.has(number)) candidates.set(number, { number, sources: [] });
-            candidates.get(number).sources.push(signal.formula || signal.group);
-          });
-        });
-        if (!candidates.size) return [];
-        const pending = new Set(candidates.keys());
-        const byDay = Array.from({ length: window }, (_, offset) => {
-          const resultDate = addDays(date, offset);
-          const available = actual.has(resultDate);
-          const resultNumbers = actual.get(resultDate) || [];
-          const appeared = resultNumbers.filter(({ number }) => number.length >= numberSize).map(({ number }) => number.slice(-numberSize));
-          const matches = appeared.filter((number) => pending.has(number));
-          const matched = [...new Set(matches)];
-          matched.forEach((number) => pending.delete(number));
-          const evidence = matched.map((number) => ({ number, sources: [...new Set(candidates.get(number).sources)] }));
-          return { day: offset + 1, date: resultDate, available, hits: matches.length, matched, evidence };
-        });
-        const hits = byDay.reduce((total, day) => total + day.hits, 0);
-        const matched = [...new Set(byDay.flatMap((day) => day.matched))];
-        return hits ? [{ vipMode, numberSize, numbers: matched, hits, matched, byDay }] : [];
-      }));
-      return { date, items };
-    }).filter((day) => day.items.length);
+    const result = await pool.query(`SELECT target_date::text AS date, vip_mode, number_size, window_size, payload
+      FROM vip_result_history
+      WHERE number_size = $1 AND window_size = $2 AND COALESCE((payload ->> 'hits')::int, 0) > 0
+      ORDER BY target_date DESC, vip_mode
+      LIMIT 6`, [numberSize, window]);
+    const grouped = new Map();
+    result.rows.forEach((row) => {
+      if (!grouped.has(row.date)) grouped.set(row.date, { date: row.date, items: [] });
+      grouped.get(row.date).items.push({ vipMode: row.vip_mode, numberSize: row.number_size, window: row.window_size, ...row.payload });
+    });
+    const days = [...grouped.values()].slice(0, 3);
     return res.json({ numberSize, window, days });
   } catch (error) { return next(error); }
 };

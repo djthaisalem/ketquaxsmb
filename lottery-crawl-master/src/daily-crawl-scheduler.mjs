@@ -56,13 +56,14 @@ async function getCrawlerSettings() {
 export function startDailyCrawlSchedule() {
   if (process.env.AUTO_CRAWL === 'false') return;
   let lastRunDate = '';
+  let runningScheduledCrawl = false;
   setInterval(async () => {
     const clock = vietnamClock();
     const date = todayVietnam();
     const settings = await getCrawlerSettings();
     const [hour, minute] = settings.schedule.split(':');
-    if (!settings.enabled || clock.hour !== hour || clock.minute !== minute || lastRunDate === date) return;
-    lastRunDate = date;
+    if (!settings.enabled || lastRunDate === date || runningScheduledCrawl || `${clock.hour}:${clock.minute}` < `${hour}:${minute}`) return;
+    runningScheduledCrawl = true;
     try {
       const result = await runCrawl(date);
       const nextDate = new Date(`${date}T00:00:00Z`);
@@ -82,9 +83,12 @@ export function startDailyCrawlSchedule() {
       }));
       queueInternalBacktestRefresh();
       queueVipSnapshotRefresh(targetDate);
+      lastRunDate = date;
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {
       console.error(`Daily crawl ${date} failed: ${error.message}`);
+    } finally {
+      runningScheduledCrawl = false;
     }
   }, 15_000);
   console.log('Daily crawler reads its schedule from CMS (Asia/Ho_Chi_Minh).');

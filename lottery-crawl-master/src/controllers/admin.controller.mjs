@@ -264,7 +264,7 @@ const filterVipPayloadBySource = (payload = {}, source) => {
 
 export const listVipResults = async (req, res, next) => {
   try {
-    const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : '2026-07-01';
+    const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : '2026-06-01';
     const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : currentDate();
     const numberSize = String(req.query.numberSize) === '3' ? 3 : 2;
     const window = ['1', '2', '3'].includes(String(req.query.window)) ? Number(req.query.window) : 3;
