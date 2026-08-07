@@ -5,6 +5,7 @@ import StrategyPanel from './StrategyPanel';
 import StatsPanel from './StatsPanel';
 import StrategyAccess from './StrategyAccess';
 import DateInput from './DateInput';
+import NoticePopup from './NoticePopup';
 
 const API_URL = '/api';
 const prizeOrder = ['db', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7'];
@@ -154,7 +155,7 @@ export default function App() {
           </form>
         </section>
 
-        {message && <div className="notice" role="alert">{message}</div>}
+        <NoticePopup message={message} type="error" onClose={() => setMessage('')} />
 
         <section className="metric-grid" aria-label="Tổng quan dữ liệu">
           <article><p>Kỳ quay đã lưu</p><strong>{overview?.data?.count?.toLocaleString('vi-VN') || '—'}</strong><span>Từ {formatDate(overview?.data?.first_date)}</span></article>

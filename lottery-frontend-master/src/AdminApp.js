@@ -8,6 +8,7 @@ import './admin-payments.css';
 import './admin-notifications.css';
 import './admin-vip-results.css';
 import './admin-research-backtest.css';
+import NoticePopup from './NoticePopup';
 
 const API = '/api/admin';
 const menu = [
@@ -173,7 +174,7 @@ export default function AdminApp() {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   }
 
-  if (!token) return <main className="cms-login-page"><section className="cms-login-card"><a className="cms-login-brand" href="/">Kết quả <b>XSMB</b><span>CMS</span></a><p className="cms-kicker">KHU VỰC QUẢN TRỊ</p><h1>Đăng nhập quản trị</h1><p>Quản lý vận hành ketquaxsmb.online.</p><form onSubmit={handleLogin}><label>Tên đăng nhập<input autoComplete="username" value={credentials.username} onChange={(event) => setCredentials({ ...credentials, username: event.target.value })} /></label><label>Mật khẩu<input type="password" autoComplete="current-password" value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} /></label><button disabled={loading}>{loading ? 'Đang kiểm tra…' : 'Vào CMS'}</button></form>{error && <div className="cms-error">{error}</div>}<a className="cms-back" href="/">← Quay lại website</a></section></main>;
+  if (!token) return <main className="cms-login-page"><NoticePopup message={error} type="error" onClose={() => setError('')} /><section className="cms-login-card"><a className="cms-login-brand" href="/">Kết quả <b>XSMB</b><span>CMS</span></a><p className="cms-kicker">KHU VỰC QUẢN TRỊ</p><h1>Đăng nhập quản trị</h1><p>Quản lý vận hành ketquaxsmb.online.</p><form onSubmit={handleLogin}><label>Tên đăng nhập<input autoComplete="username" value={credentials.username} onChange={(event) => setCredentials({ ...credentials, username: event.target.value })} /></label><label>Mật khẩu<input type="password" autoComplete="current-password" value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} /></label><button disabled={loading}>{loading ? 'Đang kiểm tra…' : 'Vào CMS'}</button></form><a className="cms-back" href="/">← Quay lại website</a></section></main>;
 
   const content = () => {
     if (page === 'plans') return <PlanManager plans={data.plans?.plans} onCreate={createPlan} onToggle={togglePlan} onSave={async (plan, values) => {
@@ -200,7 +201,6 @@ export default function AdminApp() {
             <button>Lưu cấu hình</button>
           </form>
         </section>
-        {notice && <p className="cms-success cms-save-notice">{notice}</p>}
       </>;
     }
     if (page === 'payments') return <PaymentSettings settings={data.payments?.settings} updatedAt={data.payments?.updatedAt} onSave={savePayments} />;
@@ -212,7 +212,7 @@ export default function AdminApp() {
     return <><section className="cms-panel cms-form-panel"><div><p className="cms-kicker">POSTGRESQL</p><h2>Tra cứu kết quả đã lưu</h2><p className="cms-muted">Hiển thị giải đặc biệt để kiểm tra nhanh dữ liệu kỳ quay.</p></div><form className="cms-inline-form cms-results-filter" onSubmit={(event) => { event.preventDefault(); load('database'); }}><label>Từ ngày<DateInput value={resultRange.from} onChange={(value) => setResultRange({ ...resultRange, from: value })} /></label><label>Đến ngày<DateInput value={resultRange.to} onChange={(value) => setResultRange({ ...resultRange, to: value })} /></label><button>Tải kết quả</button></form></section><section className="cms-panel"><div className="cms-panel-title"><div><p className="cms-kicker">KẾT QUẢ XSMB</p><h2>{data.database?.total?.toLocaleString('vi-VN') || 0} kỳ trong khoảng chọn</h2></div></div><div className="cms-table-wrap"><table><thead><tr><th>Ngày quay</th><th>Giải đặc biệt</th><th>Thời gian lưu</th></tr></thead><tbody>{data.database?.results?.map((row) => <tr key={row.draw_date}><td><b>{formatDate(row.draw_date)}</b></td><td className="cms-special">{row.special_prize?.join(' · ')}</td><td>{new Date(row.crawled_at).toLocaleString('vi-VN')}</td></tr>) || <tr><td colSpan="3">Đang tải dữ liệu…</td></tr>}</tbody></table></div></section></>;
   };
 
-  return <div className="cms-app"><header className="cms-topbar"><a href="/" className="cms-site-link">← Website</a><div><span className="cms-kicker">KEQUAXSMB.ONLINE</span><strong>Control room</strong></div><button className="cms-logout" onClick={logout}>Đăng xuất</button></header><div className="cms-layout"><aside className="cms-sidebar"><a className="cms-brand" href="/admin"><span>KS</span><b>Kết quả <em>XSMB</em></b></a><p className="cms-sidebar-label">QUẢN TRỊ HỆ THỐNG</p><nav>{menu.map(([key, label]) => <button className={page === key ? 'active' : ''} key={key} onClick={() => setPage(key)}>{label}</button>)}</nav><div className="cms-sidebar-note"><b>PostgreSQL</b><span>Đang kết nối dữ liệu XSMB local.</span></div></aside><main className="cms-workspace"><div className="cms-heading"><div><p className="cms-kicker">CMS WORKSPACE</p><h1>{active?.[1]}</h1><p>{active?.[2]}</p></div>{loading && <span className="cms-loading">Đang cập nhật…</span>}</div>{error && <div className="cms-error">{error}</div>}{content()}</main></div></div>;
+  return <div className="cms-app"><NoticePopup message={error || notice} type={error ? 'error' : 'success'} onClose={() => { setError(''); setNotice(''); }} /><header className="cms-topbar"><a href="/" className="cms-site-link">← Website</a><div><span className="cms-kicker">KEQUAXSMB.ONLINE</span><strong>Control room</strong></div><button className="cms-logout" onClick={logout}>Đăng xuất</button></header><div className="cms-layout"><aside className="cms-sidebar"><a className="cms-brand" href="/admin"><span>KS</span><b>Kết quả <em>XSMB</em></b></a><p className="cms-sidebar-label">QUẢN TRỊ HỆ THỐNG</p><nav>{menu.map(([key, label]) => <button className={page === key ? 'active' : ''} key={key} onClick={() => setPage(key)}>{label}</button>)}</nav><div className="cms-sidebar-note"><b>PostgreSQL</b><span>Đang kết nối dữ liệu XSMB local.</span></div></aside><main className="cms-workspace"><div className="cms-heading"><div><p className="cms-kicker">CMS WORKSPACE</p><h1>{active?.[1]}</h1><p>{active?.[2]}</p></div>{loading && <span className="cms-loading">Đang cập nhật…</span>}</div>{content()}</main></div></div>;
 }
 
 const DEFAULT_PAYMENT_SETTINGS = {
