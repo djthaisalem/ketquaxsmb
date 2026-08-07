@@ -6,6 +6,7 @@ import StatsPanel from './StatsPanel';
 import StrategyAccess from './StrategyAccess';
 import DateInput from './DateInput';
 import NoticePopup from './NoticePopup';
+import { applySeo } from './seo';
 
 const API_URL = '/api';
 const prizeOrder = ['db', 'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'g7'];
@@ -50,6 +51,7 @@ export default function App() {
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('tab', view);
     window.history.replaceState(null, '', nextUrl);
+    applySeo();
   }
 
   async function request(path, options = {}) {
