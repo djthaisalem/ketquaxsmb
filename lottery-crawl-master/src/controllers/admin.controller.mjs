@@ -237,12 +237,36 @@ export const listResults = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+const vipSourceMatches = (formula, source) => {
+  const value = String(formula || '').toLocaleLowerCase('vi-VN');
+  if (source === 'bac-nho') return value.startsWith('bạc nhớ:');
+  if (source === 'bong-am-duong') return value.startsWith('bóng dương gđb') || value.startsWith('bóng âm gđb');
+  if (source === 'ghep-g7') return value.startsWith('ghép g7');
+  if (source === 'ghep-gdb-g4-g5') return value.startsWith('gđb đuôi');
+  return true;
+};
+
+const filterVipPayloadBySource = (payload = {}, source) => {
+  if (source === 'all') return payload;
+  const byDay = (payload.byDay || []).map((day) => {
+    const evidence = (day.evidence || []).map((proof) => ({
+      ...proof,
+      sources: (proof.sources || []).filter((formula) => vipSourceMatches(formula, source)),
+    })).filter((proof) => proof.sources.length);
+    const matched = evidence.map((proof) => proof.number);
+    return { ...day, matched, evidence, hits: matched.length };
+  });
+  const matched = [...new Set(byDay.flatMap((day) => day.matched))];
+  return { ...payload, numbers: matched, matched, hits: byDay.reduce((total, day) => total + day.hits, 0), byDay };
+};
+
 export const listVipResults = async (req, res, next) => {
   try {
     const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : '2026-07-01';
     const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : currentDate();
     const numberSize = String(req.query.numberSize) === '3' ? 3 : 2;
     const window = ['1', '2', '3'].includes(String(req.query.window)) ? Number(req.query.window) : 3;
+    const source = ['all', 'bac-nho', 'bong-am-duong', 'ghep-g7', 'ghep-gdb-g4-g5'].includes(String(req.query.source)) ? String(req.query.source) : 'all';
     if (from > to) return res.status(400).json({ error: 'Ngày bắt đầu phải trước ngày kết thúc.' });
     const result = await pool.query(`SELECT target_date::text AS date, vip_mode, number_size, window_size, payload, generated_at
       FROM vip_result_history
@@ -251,10 +275,12 @@ export const listVipResults = async (req, res, next) => {
       ORDER BY target_date DESC, vip_mode`, [from, to, numberSize, window]);
     const grouped = new Map();
     result.rows.forEach((row) => {
+      const payload = filterVipPayloadBySource(row.payload, source);
+      if (!payload.hits) return;
       if (!grouped.has(row.date)) grouped.set(row.date, { date: row.date, items: [] });
-      grouped.get(row.date).items.push({ vipMode: row.vip_mode, numberSize: row.number_size, window: row.window_size, generatedAt: row.generated_at, ...row.payload });
+      grouped.get(row.date).items.push({ vipMode: row.vip_mode, numberSize: row.number_size, window: row.window_size, generatedAt: row.generated_at, ...payload });
     });
-    return res.json({ from, to, numberSize, window, days: [...grouped.values()] });
+    return res.json({ from, to, numberSize, window, source, days: [...grouped.values()] });
   } catch (error) { return next(error); }
 };
 
