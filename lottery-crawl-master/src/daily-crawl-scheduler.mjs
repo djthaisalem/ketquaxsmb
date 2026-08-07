@@ -3,7 +3,6 @@ import { refreshHomepageForecasts, refreshHomepageStatistics } from './controlle
 import pool from './db.mjs';
 import { todayVietnam } from './daily-crawler.mjs';
 import { storeVipResultHistory } from './vip-result-history.mjs';
-import { refreshInternalBacktest } from './internal-backtest.mjs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -11,6 +10,7 @@ const defaultCrawlerSettings = { schedule: '19:00', enabled: true };
 let cachedCrawlerSettings = defaultCrawlerSettings;
 let crawlerSettingsReadAt = 0;
 const vipSnapshotWorkerPath = fileURLToPath(new URL('./vip-snapshot-worker.mjs', import.meta.url));
+const internalBacktestWorkerPath = fileURLToPath(new URL('./internal-backtest-worker.mjs', import.meta.url));
 
 function queueVipSnapshotRefresh(targetDate) {
   const worker = spawn(process.execPath, [vipSnapshotWorkerPath, targetDate], {
@@ -21,6 +21,17 @@ function queueVipSnapshotRefresh(targetDate) {
   });
   worker.unref();
   console.log(`VIP snapshot refresh queued for ${targetDate}.`);
+}
+
+function queueInternalBacktestRefresh() {
+  const worker = spawn(process.execPath, [internalBacktestWorkerPath], {
+    detached: true,
+    env: process.env,
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  worker.unref();
+  console.log('Internal backtest refresh queued.');
 }
 
 function vietnamClock() {
@@ -69,7 +80,7 @@ export function startDailyCrawlSchedule() {
         value.setUTCDate(value.getUTCDate() + offset);
         return storeVipResultHistory(value.toISOString().slice(0, 10));
       }));
-      await refreshInternalBacktest();
+      queueInternalBacktestRefresh();
       queueVipSnapshotRefresh(targetDate);
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {
