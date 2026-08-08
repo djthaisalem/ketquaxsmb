@@ -494,8 +494,50 @@ export async function homepageForecasts(req, res, next) {
   try {
     const today = isDate(req.query.date) ? req.query.date : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const dates = [-2, -1, 0].map((offset) => addDays(today, offset));
-    const result = await pool.query('SELECT target_date::text AS target_date, category, numbers, formula, rate::float AS rate, wins, signals, generated_at FROM homepage_forecasts WHERE target_date = ANY($1::date[]) ORDER BY target_date, category', [dates]);
-    res.json({ dates, items: result.rows, ready: result.rows.length === dates.length * 6 });
+    const [forecasts, prizes, vipSnapshots] = await Promise.all([
+      pool.query('SELECT target_date::text AS target_date, category, numbers, formula, rate::float AS rate, wins, signals, generated_at FROM homepage_forecasts WHERE target_date = ANY($1::date[]) ORDER BY target_date, category', [dates]),
+      pool.query('SELECT draw_date::text AS draw_date, numbers FROM lottery_prizes WHERE draw_date = ANY($1::date[])', [dates.slice(0, 2)]),
+      pool.query('SELECT vip_mode, number_size, window_size, payload, generated_at FROM vip_strategy_snapshots WHERE target_date = $1', [today]),
+    ]);
+
+    const actualByDate = new Map();
+    prizes.rows.forEach((row) => actualByDate.set(row.draw_date, [...(actualByDate.get(row.draw_date) || []), ...row.numbers.map(String)]));
+    const digitsForCategory = (category) => ['3so', 'dac-biet'].includes(category) ? 3 : 2;
+    const resultRows = forecasts.rows.map((row) => {
+      if (!dates.slice(0, 2).includes(row.target_date)) return row;
+      const digits = digitsForCategory(row.category);
+      const actual = new Set((actualByDate.get(row.target_date) || []).filter((number) => number.length >= digits).map((number) => number.slice(-digits)));
+      const matched = [...new Set((row.numbers || []).map(String).filter((number) => actual.has(number)))];
+      return { ...row, numbers: matched, is_result: true, hits: matched.length, rate: matched.length ? 100 : 0 };
+    });
+
+    const vipBySize = new Map();
+    vipSnapshots.rows.forEach((row) => {
+      const recommendation = row.payload?.recommendation;
+      if (!recommendation?.targets?.length) return;
+      const current = vipBySize.get(row.number_size);
+      const better = !current || recommendation.rate > current.recommendation.rate || (recommendation.rate === current.recommendation.rate && recommendation.signals > current.recommendation.signals);
+      if (better) vipBySize.set(row.number_size, { ...row, recommendation });
+    });
+    const vipRows = ['2so', '3so', 'lo-xien', 'de', 'cap-so', 'dac-biet'].map((category) => {
+      const numberSize = digitsForCategory(category);
+      const snapshot = vipBySize.get(numberSize);
+      if (!snapshot) return null;
+      const targets = snapshot.recommendation.targets.map(String);
+      return {
+        target_date: today,
+        category,
+        numbers: ['de', 'dac-biet'].includes(category) ? targets.slice(0, 1) : targets,
+        formula: `VIP ${snapshot.vip_mode === 'vip1' ? '1' : '2'} · Khung ${snapshot.window_size} ngày · ${snapshot.recommendation.formula}`,
+        rate: snapshot.recommendation.rate,
+        wins: snapshot.recommendation.wins,
+        signals: snapshot.recommendation.signals,
+        generated_at: snapshot.generated_at,
+        is_vip_best: true,
+      };
+    }).filter(Boolean);
+    const items = [...resultRows.filter((row) => row.target_date !== today), ...vipRows];
+    res.json({ dates, items, ready: items.length === dates.length * 6 });
   } catch (error) { next(error); }
 }
 

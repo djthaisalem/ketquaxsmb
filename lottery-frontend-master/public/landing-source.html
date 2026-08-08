@@ -1624,6 +1624,7 @@
             
             container.innerHTML = data.map((item, index) => {
                 const isVip = item.vip;
+                const isResult = Boolean(item.isResult);
                 const borderClass = isVip ? 'border-yellow-400' : 'border-primary-500';
                 const numberColor = isVip ? 'text-yellow-400' : 'text-primary-400';
                 const numberBorder = isVip ? 'border-yellow-400/30' : '';
@@ -1633,7 +1634,7 @@
                 const isPairTab = tabKey === 'lo-xien' || tabKey === 'cap-so';
                 const displayNumbers = isPairTab ? item.numbers.flatMap((number) => String(number).split(/\s*[–-]\s*/).filter(Boolean)).slice(0, 2) : item.numbers;
                 const pairLabel = tabKey === 'lo-xien' ? 'Lô xiên 2 · hai lô cùng xuất hiện' : tabKey === 'cap-so' ? 'Cặp số ưu tiên từ dữ liệu lịch sử' : '';
-                const rateLabel = tabKey === 'lo-xien' ? 'Tỷ lệ cùng về:' : tabKey === 'cap-so' ? 'Tỷ lệ có lô về:' : 'Tỉ lệ trúng:';
+                const rateLabel = isResult ? 'Kết quả thực tế:' : tabKey === 'lo-xien' ? 'Tỷ lệ cùng về:' : tabKey === 'cap-so' ? 'Tỷ lệ có lô về:' : 'Tỉ lệ trúng:';
                 
                 let numbersHtml = displayNumbers.map(num => 
                     `<span class="number-ball w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold ${numberColor} font-mono ${isVip ? 'border border-yellow-400/30' : ''}">${num}</span>`
@@ -1676,7 +1677,7 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-slate-400">${rateLabel}</span>
-                                <span class="text-sm font-bold ${isVip ? 'text-yellow-400' : 'text-green-400'}">${item.rate}%</span>
+                                <span class="text-sm font-bold ${isVip ? 'text-yellow-400' : 'text-green-400'}">${isResult ? `${item.hits} số đã về` : `${item.rate}%`}</span>
                             </div>
                             <div class="w-full h-2 bg-dark-700 rounded-full overflow-hidden">
                                 <div class="h-full bg-gradient-to-r ${progressGradient} rounded-full" style="width: ${item.rate}%"></div>
@@ -1738,11 +1739,13 @@
                         const title = index === 0 ? `Ngày trước · ${formatForecastDate(targetDate)}` : index === 1 ? `Ngày hôm qua · ${formatForecastDate(targetDate)}` : `Hôm nay · ${formatForecastDate(targetDate)}`;
                         return {
                             title,
-                            badge: isVip ? 'PREMIUM' : 'FREE',
+                            badge: isVip ? 'PREMIUM' : item?.is_result ? 'ĐÃ VỀ' : 'FREE',
                             badgeColor: isVip ? 'yellow' : 'green',
                             numbers: item?.numbers?.length ? item.numbers : ['—'],
                             rate: item?.rate || 0,
-                            time: item ? `Đồng bộ: ${formatForecastUpdatedAt(item.generated_at)} · ${item.wins}/${item.signals} tín hiệu` : 'Chưa đủ dữ liệu',
+                            hits: item?.hits || 0,
+                            isResult: Boolean(item?.is_result),
+                            time: item?.is_result ? (item.numbers?.length ? `Đã đối chiếu kết quả ngày ${formatForecastDate(targetDate)}` : `Không có số dự đoán nào về ngày ${formatForecastDate(targetDate)}`) : item ? `Đồng bộ: ${formatForecastUpdatedAt(item.generated_at)} · ${item.wins}/${item.signals} tín hiệu` : 'Chưa đủ dữ liệu',
                             border: isVip ? 'yellow-400' : 'primary-500',
                             vip: isVip
                         };
