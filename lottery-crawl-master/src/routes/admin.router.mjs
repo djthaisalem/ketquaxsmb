@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { apiStatus, createPlan, createUser, deleteUser, getResearchBacktest, listNotifications, listPlans, listResults, listUsers, listVipResults, login, overview, paymentSettings, refreshResearchBacktest, requireAdmin, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
+import { apiStatus, createPlan, createUser, deleteUser, getResearchBacktest, listNotifications, listPlans, listResults, listUsers, listVipResults, login, overview, paymentSettings, refreshReferenceResearchBacktest, refreshResearchBacktest, requireAdmin, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
 
 const adminRoutes = Router();
 
@@ -24,5 +24,6 @@ adminRoutes.get('/results', listResults);
 adminRoutes.get('/vip-results', listVipResults);
 adminRoutes.get('/research-backtest', getResearchBacktest);
 adminRoutes.post('/research-backtest/refresh', refreshResearchBacktest);
+adminRoutes.post('/research-backtest/reference/refresh', refreshReferenceResearchBacktest);
 
 export default adminRoutes;
