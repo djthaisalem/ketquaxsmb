@@ -494,21 +494,40 @@ export async function homepageForecasts(req, res, next) {
   try {
     const today = isDate(req.query.date) ? req.query.date : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const dates = [-2, -1, 0].map((offset) => addDays(today, offset));
-    const [forecasts, prizes, vipSnapshots] = await Promise.all([
+    const [forecasts, vipHistory, vipSnapshots] = await Promise.all([
       pool.query('SELECT target_date::text AS target_date, category, numbers, formula, rate::float AS rate, wins, signals, generated_at FROM homepage_forecasts WHERE target_date = ANY($1::date[]) ORDER BY target_date, category', [dates]),
-      pool.query('SELECT draw_date::text AS draw_date, numbers FROM lottery_prizes WHERE draw_date = ANY($1::date[])', [dates.slice(0, 2)]),
+      pool.query(`SELECT h.target_date::text AS target_date, h.vip_mode, h.number_size, h.window_size, h.payload AS history_payload, s.payload AS snapshot_payload
+        FROM vip_result_history h
+        JOIN vip_strategy_snapshots s ON s.target_date = h.target_date AND s.vip_mode = h.vip_mode AND s.number_size = h.number_size AND s.window_size = h.window_size
+        WHERE h.target_date = ANY($1::date[])`, [dates.slice(0, 2)]),
       pool.query('SELECT vip_mode, number_size, window_size, payload, generated_at FROM vip_strategy_snapshots WHERE target_date = $1', [today]),
     ]);
 
-    const actualByDate = new Map();
-    prizes.rows.forEach((row) => actualByDate.set(row.draw_date, [...(actualByDate.get(row.draw_date) || []), ...row.numbers.map(String)]));
     const digitsForCategory = (category) => ['3so', 'dac-biet'].includes(category) ? 3 : 2;
+    const historyByDateAndSize = new Map();
+    vipHistory.rows.forEach((row) => {
+      const recommendation = row.snapshot_payload?.recommendation;
+      if (!recommendation) return;
+      const key = `${row.target_date}-${row.number_size}`;
+      const current = historyByDateAndSize.get(key);
+      if (!current || recommendation.rate > current.recommendation.rate || (recommendation.rate === current.recommendation.rate && recommendation.signals > current.recommendation.signals)) {
+        historyByDateAndSize.set(key, { ...row, recommendation });
+      }
+    });
     const resultRows = forecasts.rows.map((row) => {
       if (!dates.slice(0, 2).includes(row.target_date)) return row;
       const digits = digitsForCategory(row.category);
-      const actual = new Set((actualByDate.get(row.target_date) || []).filter((number) => number.length >= digits).map((number) => number.slice(-digits)));
-      const matched = [...new Set((row.numbers || []).map(String).filter((number) => actual.has(number)))];
-      return { ...row, numbers: matched, is_result: true, hits: matched.length, rate: matched.length ? 100 : 0 };
+      const history = historyByDateAndSize.get(`${row.target_date}-${digits}`);
+      const firstDay = history?.history_payload?.byDay?.find((day) => day.day === 1);
+      const matched = firstDay?.matched || [];
+      return {
+        ...row,
+        numbers: matched,
+        formula: history ? `VIP ${history.vip_mode === 'vip1' ? '1' : '2'} · Khung ${history.window_size} ngày · ${history.recommendation.formula}` : row.formula,
+        is_result: true,
+        hits: firstDay?.hits || 0,
+        rate: matched.length ? 100 : 0,
+      };
     });
 
     const vipBySize = new Map();
