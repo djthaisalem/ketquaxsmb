@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const defaultCrawlerSettings = { schedule: '19:00', enabled: true };
+const retryDelayMs = 10 * 60 * 1000;
 let cachedCrawlerSettings = defaultCrawlerSettings;
 let crawlerSettingsReadAt = 0;
 const vipSnapshotWorkerPath = fileURLToPath(new URL('./vip-snapshot-worker.mjs', import.meta.url));
@@ -56,16 +57,19 @@ async function getCrawlerSettings() {
 export function startDailyCrawlSchedule() {
   if (process.env.AUTO_CRAWL === 'false') return;
   let lastRunDate = '';
+  let lastAttemptAt = 0;
   let runningScheduledCrawl = false;
   setInterval(async () => {
     const clock = vietnamClock();
     const date = todayVietnam();
     const settings = await getCrawlerSettings();
     const [hour, minute] = settings.schedule.split(':');
-    if (!settings.enabled || lastRunDate === date || runningScheduledCrawl || `${clock.hour}:${clock.minute}` < `${hour}:${minute}`) return;
+    if (!settings.enabled || lastRunDate === date || runningScheduledCrawl || `${clock.hour}:${clock.minute}` < `${hour}:${minute}` || Date.now() - lastAttemptAt < retryDelayMs) return;
     runningScheduledCrawl = true;
+    lastAttemptAt = Date.now();
     try {
       const result = await runCrawl(date);
+      if (result.successfulDays < 1) throw new Error(`Nguồn chưa có kết quả hoặc crawl thất bại (${result.failedDays} lỗi).`);
       const nextDate = new Date(`${date}T00:00:00Z`);
       nextDate.setUTCDate(nextDate.getUTCDate() + 1);
       const targetDate = nextDate.toISOString().slice(0, 10);
@@ -86,7 +90,7 @@ export function startDailyCrawlSchedule() {
       lastRunDate = date;
       console.log(`Daily crawl ${date}: ${result.successfulDays} saved, ${result.failedDays} failed.`);
     } catch (error) {
-      console.error(`Daily crawl ${date} failed: ${error.message}`);
+      console.error(`Daily crawl ${date} failed: ${error.message}. Will retry in 10 minutes.`);
     } finally {
       runningScheduledCrawl = false;
     }

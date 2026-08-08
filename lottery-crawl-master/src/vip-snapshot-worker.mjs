@@ -32,11 +32,7 @@ try {
   const client = await pool.connect();
   try {
     await client.query('SELECT pg_advisory_lock(hashtext($1))', [`vip-snapshot:${targetDate}`]);
-    const existing = await client.query(`SELECT COUNT(*)::int AS count FROM vip_strategy_snapshots
-      WHERE target_date = $1 AND vip_mode = ANY($2::text[]) AND window_size = ANY($3::int[]) AND number_size = ANY($4::int[])`,
-    [targetDate, options.modes, options.windows, options.numberSizes]);
-    const expected = options.modes.length * options.windows.length * options.numberSizes.length;
-    if (existing.rows[0].count < expected) await refreshVipStrategySnapshots(targetDate, options);
+    await refreshVipStrategySnapshots(targetDate, options);
   } finally {
     await client.query('SELECT pg_advisory_unlock(hashtext($1))', [`vip-snapshot:${targetDate}`]).catch(() => {});
     client.release();
