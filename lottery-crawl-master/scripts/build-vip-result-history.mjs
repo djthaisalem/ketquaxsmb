@@ -7,6 +7,7 @@ config();
 
 const option = (name, fallback) => process.argv.find((value) => value.startsWith(`--${name}=`))?.slice(name.length + 3) || fallback;
 const from = option('from', '2026-07-01');
+const historyOnly = process.argv.includes('--history-only');
 const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value || '');
 if (!validDate(from)) throw new Error('Tham số --from phải là YYYY-MM-DD.');
 
@@ -17,7 +18,7 @@ if (!validDate(to) || from > to) throw new Error('Khoảng ngày không hợp l�
 let stored = 0;
 try {
   for (let current = from; current <= to;) {
-    await refreshVipStrategySnapshots(current);
+    if (!historyOnly) await refreshVipStrategySnapshots(current);
     stored += await storeVipResultHistory(current);
     const next = new Date(`${current}T00:00:00Z`);
     next.setUTCDate(next.getUTCDate() + 1);

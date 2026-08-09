@@ -4,6 +4,7 @@ import { invalidateMemberSessions } from './membership.controller.mjs';
 import { allowLoginAttempt, clearLoginFailures, recordLoginFailure } from '../auth-security.mjs';
 import { saveTelegramSettings, telegramSettings } from '../telegram.mjs';
 import { getInternalBacktest, getReferenceFormulaBacktest, refreshInternalBacktest, refreshReferenceFormulaBacktest } from '../internal-backtest.mjs';
+import { getBalancedDistinctJob, startBalancedDistinctJob } from '../balanced-distinct-jobs.mjs';
 
 const sessions = new Map();
 const adminUsername = process.env.ADMIN_USERNAME || 'admin';
@@ -249,7 +250,22 @@ const vipSourceMatches = (formula, source) => {
 };
 
 const filterVipPayloadBySource = (payload = {}, source) => {
-  if (source === 'all') return payload;
+  const predicted = (payload.predicted || []).map((candidate) => ({
+    ...candidate,
+    sources: [...new Set(candidate.sources || [])],
+  }));
+  if (source === 'all') {
+    return {
+      ...payload,
+      matchedCount: payload.matchedCount ?? (payload.matched || []).length,
+      totalPredicted: payload.totalPredicted ?? (predicted.length || null),
+      predicted,
+    };
+  }
+  const filteredPredicted = predicted.map((candidate) => ({
+    ...candidate,
+    sources: candidate.sources.filter((formula) => vipSourceMatches(formula, source)),
+  })).filter((candidate) => candidate.sources.length);
   const byDay = (payload.byDay || []).map((day) => {
     const evidence = (day.evidence || []).map((proof) => ({
       ...proof,
@@ -259,7 +275,16 @@ const filterVipPayloadBySource = (payload = {}, source) => {
     return { ...day, matched, evidence, hits: matched.length };
   });
   const matched = [...new Set(byDay.flatMap((day) => day.matched))];
-  return { ...payload, numbers: matched, matched, hits: byDay.reduce((total, day) => total + day.hits, 0), byDay };
+  return {
+    ...payload,
+    numbers: matched,
+    matched,
+    matchedCount: matched.length,
+    totalPredicted: filteredPredicted.length || null,
+    predicted: filteredPredicted,
+    hits: byDay.reduce((total, day) => total + day.hits, 0),
+    byDay,
+  };
 };
 
 export const listVipResults = async (req, res, next) => {
@@ -301,5 +326,22 @@ export const refreshResearchBacktest = async (_req, res, next) => {
 export const refreshReferenceResearchBacktest = async (_req, res, next) => {
   try {
     return res.json({ report: await refreshReferenceFormulaBacktest() });
+  } catch (error) { return next(error); }
+};
+
+export const runBalancedDistinctResearch = async (req, res, next) => {
+  try {
+    const from = String(req.body?.from || '');
+    const to = String(req.body?.to || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return res.status(400).json({ error: 'Khoảng ngày backtest không hợp lệ.' });
+    return res.status(202).json({ job: startBalancedDistinctJob(from, to) });
+  } catch (error) { return next(error); }
+};
+
+export const getBalancedDistinctResearchJob = async (req, res, next) => {
+  try {
+    const job = getBalancedDistinctJob(req.params.id);
+    if (!job) return res.status(404).json({ error: 'Không tìm thấy tiến trình backtest.' });
+    return res.json({ job });
   } catch (error) { return next(error); }
 };

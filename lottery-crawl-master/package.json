@@ -9,7 +9,11 @@
     "development": "node ./dist/bundle.development.js",
     "start": "node index.mjs",
     "db:migrate": "node scripts/migrate.mjs",
-    "crawl:minhngoc": "node scripts/crawl-minhngoc-to-postgres.mjs"
+    "crawl:minhngoc": "node scripts/crawl-minhngoc-to-postgres.mjs",
+    "test:reverse-target": "node scripts/test-reverse-target-backtest.mjs",
+    "backtest:reverse-target": "node scripts/refresh-reverse-target-backtest.mjs",
+    "test:balanced-distinct": "node scripts/test-balanced-distinct.mjs",
+    "backtest:balanced-distinct": "node scripts/run-balanced-distinct.mjs"
   },
   "author": "",
   "license": "ISC",

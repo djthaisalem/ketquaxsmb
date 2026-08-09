@@ -36,7 +36,15 @@ function resultPayload(snapshot, actual) {
     };
   });
   const matched = [...new Set(byDay.flatMap((day) => day.matched))];
-  return { numbers: matched, matched, hits: byDay.reduce((total, day) => total + day.hits, 0), byDay };
+  return {
+    numbers: matched,
+    matched,
+    matchedCount: matched.length,
+    totalPredicted: candidates.size,
+    predicted: [...candidates.values()].map((candidate) => ({ ...candidate, sources: [...new Set(candidate.sources)] })),
+    hits: byDay.reduce((total, day) => total + day.hits, 0),
+    byDay,
+  };
 }
 
 export async function storeVipResultHistory(targetDate) {

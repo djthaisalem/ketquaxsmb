@@ -1,0 +1,4 @@
+.cms-balanced-running{position:relative;display:flex;justify-content:space-between;gap:12px;overflow:hidden}
+.cms-balanced-running b,.cms-balanced-running span{position:relative;z-index:1}
+.cms-balanced-running b{white-space:nowrap}
+.cms-balanced-running i{position:absolute;inset:auto 0 0 0;height:3px;background:#38bdf8;transition:width .25s}

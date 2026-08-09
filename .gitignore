@@ -18,3 +18,7 @@ backups/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# Local CodeGraph development index/tooling (never deploy or commit)
+codegraph-main/
+.codegraph/

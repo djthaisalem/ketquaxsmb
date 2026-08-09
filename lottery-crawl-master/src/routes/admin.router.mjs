@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { apiStatus, createPlan, createUser, deleteUser, getResearchBacktest, listNotifications, listPlans, listResults, listUsers, listVipResults, login, overview, paymentSettings, refreshReferenceResearchBacktest, refreshResearchBacktest, requireAdmin, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
+import { apiStatus, createPlan, createUser, deleteUser, getBalancedDistinctResearchJob, getResearchBacktest, listNotifications, listPlans, listResults, listUsers, listVipResults, login, overview, paymentSettings, refreshReferenceResearchBacktest, refreshResearchBacktest, requireAdmin, runBalancedDistinctResearch, updateApiSetting, updatePaymentRequest, updatePaymentSettings, updatePlan, updateTelegram, updateUser } from '../controllers/admin.controller.mjs';
 
 const adminRoutes = Router();
 
@@ -25,5 +25,7 @@ adminRoutes.get('/vip-results', listVipResults);
 adminRoutes.get('/research-backtest', getResearchBacktest);
 adminRoutes.post('/research-backtest/refresh', refreshResearchBacktest);
 adminRoutes.post('/research-backtest/reference/refresh', refreshReferenceResearchBacktest);
+adminRoutes.post('/research-backtest/balanced-distinct/run', runBalancedDistinctResearch);
+adminRoutes.get('/research-backtest/balanced-distinct/jobs/:id', getBalancedDistinctResearchJob);
 
 export default adminRoutes;
