@@ -129,7 +129,7 @@ export default function App() {
     <div className={`app-shell view-${activeView}`}>
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Loto Analytics trang chủ">
-          <img className="brand-mark" src="/logo.png?v=xsmb2" alt="KetQuaXSMB" />
+          <img className="brand-mark" src="/logo.png?v=20260811" alt="Kết Quả XSMB" />
           <span>Loto<span>Analytics</span></span>
         </a>
       </header>
